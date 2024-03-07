@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de" class="bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <title>Interaktive SVG Karte</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.1.2/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+</head>
+<body class="text-gray-800">
+
+<h1 class="text-center text-3xl font-bold mt-8 mb-4">Concept Model - Questionnaire usage in DSR (2015-2023)</h1>
+
+<div class="flex justify-center mt-4">
+    <div class="w-1/2">
+        <p class="text-lg mb-2">Search for a questionnaire, construct or goal:</p>
+        <select id="searchResults" class="w-full"></select>
+    </div>
+</div>
+
+<div id="svgMap" class="mx-auto my-8 p-4 bg-white border border-gray-300" style="width: 80%; height: 600px; overflow: hidden;">
+    <object id="svgObject" type="image/svg+xml" data="Landkarte.svg" width="100%" height="100%"></object>
+</div>
+
+<div id="legend" class="text-center my-8">
+    <div class="inline-flex items-center mx-2">
+        <svg width="80" height="20"><rect width="80" height="20" style="fill:#e7eff6; stroke:black;stroke-width:1"/></svg><span class="ml-2">= Questionnaires</span>
+    </div>
+    <div class="inline-flex items-center mx-2">
+        <svg width="80" height="20"><rect width="80" height="20" style="fill:#adcbe3; stroke:black;stroke-width:1"/></svg><span class="ml-2">= Constructs / Items</span>
+    </div>
+    <div class="inline-flex items-center mx-2">
+        <svg width="80" height="20"><rect width="80" height="20" style="fill:#63ace5; stroke:black;stroke-width:1"/></svg><span class="ml-2">= Measurement Goals</span>
+    </div>
+</div>
+
+<!-- JavaScript für svg-pan-zoom und die Suchfunktionalität -->
+<script src="svg-pan-zoom.min.js"></script>
+<script>
+
+    // Code to show map at the right position and also load the svg-viewer and zoomer
+    var svgPanZoomInstance;
+
+    window.onload = function() {
+        var svgObject = document.getElementById('svgObject');
+        
+        console.log(svgObject)
+        var svgObject = document.getElementById('svgObject');
+        var svgDocument = svgObject.contentDocument;
+        var svg = svgDocument.querySelector('svg');
+        svgPanZoomInstance = svgPanZoom(svg, {
+            zoomEnabled: true,
+            controlIconsEnabled: true,
+            fit: false,
+            contain: false,
+            });
+
+        setTimeout(function() { // Ein kurzer Timeout, um sicherzustellen, dass alles geladen ist
+            svgPanZoomInstance.zoom(0.7); // Setzt den Zoom-Level
+            svgPanZoomInstance.pan({x: -1400, y: -1700}); // Verschiebt den sichtbaren Bereich
+        }, 500);
+    };
+
+</script>
+<script>
+   $(document).ready(function() {
+    let searchTimeout;
+
+    $('#searchResults').select2({
+        placeholder: "Enter your search term",
+        allowClear: true,
+        minimumInputLength: 1, // Benutzer muss mindestens 1 Zeichen eingeben, um die Suche zu starten
+        ajax: {
+            transport: function (params, success, failure) {
+                // Imitieren einer AJAX-Anfrage mit Verzögerung
+                if (searchTimeout) clearTimeout(searchTimeout);
+
+                searchTimeout = setTimeout(function() {
+                    var searchTerm = params.data.term.toLowerCase();
+                    var svgObject = document.getElementById('svgObject').contentDocument;
+                    var textElements = svgObject.querySelectorAll('text');
+                    var results = [];
+
+                    for (var i = 0; i < textElements.length; i++) {
+                        if (textElements[i].textContent.toLowerCase().includes(searchTerm)) {
+                            var textContent = textElements[i].textContent.trim();
+                            results.push({id: i, text: textContent});
+                        }
+                    }
+
+                    success({results: results});
+                }, 500); // Verzögerung von 500ms
+            },
+            processResults: function (data) {
+                // Verarbeitung der Suchergebnisse für die Anzeige in Select2
+                return {
+                    results: data.results.map(function(item) {
+                        return {id: item.id, text: item.text};
+                    })
+                };
+            }
+        }
+    }).on('select2:select', function (e) {
+        var selected = e.params.data;
+        var svgObject = document.getElementById('svgObject').contentDocument;
+        var textElements = svgObject.querySelectorAll('text');
+        jumpToSVGElement(textElements[selected.id]);
+    });
+});
+
+    
+    function jumpToSVGElement(element) {
+        var bbox = element.getBBox();
+        var centerX = bbox.x + bbox.width / 2;
+        var centerY = bbox.y + bbox.height / 2;
+
+        // Berechnen Sie die neue Position unter Berücksichtigung des gewünschten Zoomfaktors
+        var zoomFactor = 0.7;
+        svgPanZoomInstance.zoom(zoomFactor);
+
+        // Berechnen Sie die Größe des SVG-Containers
+        var svgWidth = document.getElementById('svgObject').clientWidth;
+        var svgHeight = document.getElementById('svgObject').clientHeight;
+
+        // Berechnen Sie, wohin das SVG verschoben werden muss, um das Element zu zentrieren
+        var newX = -centerX * zoomFactor + svgWidth / 2;
+        var newY = -centerY * zoomFactor + svgHeight / 2;
+
+        // Anwenden der berechneten Pan-Position
+        svgPanZoomInstance.pan({x: newX, y: newY});
+    }
+</script>
+    
+</body>
+</html>
