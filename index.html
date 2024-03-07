@@ -19,6 +19,9 @@
     </div>
 </div>
 
+<div id="linkContainer" class="text-center mt-4"></div>
+
+
 <div id="svgMap" class="mx-auto my-8 p-4 bg-white border border-gray-300" style="width: 80%; height: 600px; overflow: hidden;">
     <object id="svgObject" type="image/svg+xml" data="Landkarte_v3_mit_DOI.svg" width="100%" height="100%"></object>
 </div>
@@ -106,7 +109,19 @@
         var svgObject = document.getElementById('svgObject').contentDocument;
         var textElements = svgObject.querySelectorAll('text');
         jumpToSVGElement(textElements[selected.id]);
-    });
+
+        // Extrahieren und Anzeigen des Links
+        var selectedText = selected.text;
+        var linkMatch = selectedText.match(/\(http[s]?:\/\/[^\)]+\)/);
+        var linkHtml = '';
+
+        if (linkMatch) {
+            var linkUrl = linkMatch[0].slice(1, -1); // Entfernen der Klammern
+            linkHtml = 'Link to questionnaire: <a href="' + linkUrl + '" target="_blank">' + linkUrl + '</a>';
+        }
+
+        document.getElementById('linkContainer').innerHTML = linkHtml;
+        });
 });
 
     
